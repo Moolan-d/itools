@@ -9,7 +9,26 @@ const projectRoot = join(__dirname, '.');
 
 console.log('🚀 开始打包 iTools 扩展...');
 
-// 1. 确保构建是最新的
+// 0. 检查是否有未提交的代码
+console.log('🔍 检查 Git 状态...');
+const hasUncommittedChanges = checkUncommittedChanges();
+if (!hasUncommittedChanges) {
+  console.error('❌ 没有未 commit 的代码，不允许打包');
+  console.log('💡 请确保有代码修改后再执行打包');
+  process.exit(1);
+}
+console.log('✅ 检测到未提交的代码，继续打包...');
+
+// 1. 自动递增版本号
+console.log('⬆️  递增版本号...');
+try {
+  execSync('node scripts/bump-version.js', { cwd: projectRoot, stdio: 'inherit' });
+} catch (error) {
+  console.error('❌ 版本号递增失败:', error.message);
+  process.exit(1);
+}
+
+// 2. 确保构建是最新的
 console.log('📦 执行生产构建...');
 try {
   execSync('npm run build', { cwd: projectRoot, stdio: 'inherit' });
@@ -170,5 +189,15 @@ function getGitCommit() {
         return execSync('git rev-parse --short HEAD').toString().trim();
     } catch {
         return 'unknown';
+    }
+}
+
+function checkUncommittedChanges() {
+    try {
+        // 检查是否有未提交的修改
+        const statusOutput = execSync('git status --porcelain', { encoding: 'utf8' }).trim();
+        return statusOutput.length > 0;
+    } catch {
+        return false;
     }
 } 
