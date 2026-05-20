@@ -1,32 +1,35 @@
 import { useState, useEffect } from 'react'
 import QRCode from 'qrcode'
-import { motion } from 'framer-motion'
-import { Download, Copy, Check, Link } from 'lucide-react'
+import { Download, Copy, Check, Link, AlertCircle } from 'lucide-react'
 import { useCachedInput } from '../hooks/useCachedInput'
 
 export default function QRCodeTool() {
   const [text, setText] = useCachedInput('itools_cache_qr', 'https://google.com')
   const [qrDataUrl, setQrDataUrl] = useState('')
   const [copied, setCopied] = useState(false)
-
-  const generateQR = async (input: string) => {
-    try {
-      const url = await QRCode.toDataURL(input || ' ', {
-        width: 300,
-        margin: 2,
-        color: {
-          dark: '#000000',
-          light: '#ffffff',
-        },
-      })
-      setQrDataUrl(url)
-    } catch (err) {
-      console.error(err)
-    }
-  }
+  const [copyFailed, setCopyFailed] = useState(false)
+  const [qrError, setQrError] = useState<string | null>(null)
 
   useEffect(() => {
-    generateQR(text)
+    let cancelled = false
+    QRCode.toDataURL(text || ' ', {
+      width: 300,
+      margin: 2,
+      color: { dark: '#000000', light: '#ffffff' },
+    })
+      .then((url) => {
+        if (!cancelled) {
+          setQrDataUrl(url)
+          setQrError(null)
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setQrError('Failed to generate QR code')
+          console.error(err)
+        }
+      })
+    return () => { cancelled = true }
   }, [text])
 
   const handleDownload = () => {
@@ -49,6 +52,8 @@ export default function QRCodeTool() {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch (err) {
+      setCopyFailed(true)
+      setTimeout(() => setCopyFailed(false), 2000)
       console.error('Failed to copy', err)
     }
   }
@@ -83,36 +88,39 @@ export default function QRCodeTool() {
             onChange={(e) => setText(e.target.value)}
             className="w-full p-3 font-mono text-sm bg-white border border-gray-200 rounded-lg outline-none resize-none transition-all focus:border-blue-400 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.1)] text-gray-700"
             placeholder="Enter URL or text..."
+            aria-label="QR code content"
             rows={3}
           />
       </div>
 
       {/* QR Display */}
       <div className="flex-1 flex justify-center items-center min-h-0">
-          <motion.div
-            className="p-4 bg-white rounded-xl shadow-sm border border-gray-100"
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ type: 'spring', bounce: 0.4 }}
-          >
-            {qrDataUrl && (
+          <div className="p-4 bg-white rounded-xl shadow-sm border border-gray-100 qr-pop">
+            {qrError ? (
+              <div className="w-64 h-64 flex flex-col items-center justify-center gap-2 text-red-500">
+                <AlertCircle size={32} />
+                <span className="text-xs text-center">{qrError}</span>
+              </div>
+            ) : qrDataUrl ? (
               <img src={qrDataUrl} alt="QR Code" className="w-64 h-64 rounded-lg object-contain" />
-            )}
-          </motion.div>
+            ) : null}
+          </div>
       </div>
 
       {/* Actions */}
       <div className="flex gap-3 justify-end">
-        <button 
-            onClick={handleCopy} 
+        <button
+            onClick={handleCopy}
+            aria-label="Copy QR code to clipboard"
             className="flex-1 btn-modern justify-center bg-white border-gray-200 text-gray-700 hover:bg-gray-50 shadow-sm"
         >
-          {copied ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
-          <span>{copied ? 'Copied' : 'Copy'}</span>
+          {copied ? <Check size={16} className="text-green-500" /> : copyFailed ? <AlertCircle size={16} className="text-red-500" /> : <Copy size={16} />}
+          <span>{copied ? 'Copied' : copyFailed ? 'Failed' : 'Copy'}</span>
         </button>
-        <button 
-            onClick={handleDownload} 
-            className="flex-1 btn-modern justify-center bg-blue-500 border-transparent text-white hover:bg-blue-600 shadow-md shadow-blue-200"
+        <button
+            onClick={handleDownload}
+            aria-label="Download QR code"
+            className="flex-1 btn-modern justify-center bg-blue-50 border-blue-200 text-blue-600 hover:bg-blue-100 shadow-sm"
         >
           <Download size={16} />
           <span>Download</span>

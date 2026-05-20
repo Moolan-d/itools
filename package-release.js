@@ -1,11 +1,13 @@
 import { existsSync, mkdirSync, copyFileSync, readdirSync, statSync, writeFileSync, readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const projectRoot = join(__dirname, '.');
+
+const versionType = process.argv[2] || 'patch';
 
 console.log('🚀 开始打包 iTools 扩展...');
 
@@ -22,7 +24,7 @@ console.log('✅ 检测到未提交的代码，继续打包...');
 // 1. 自动递增版本号
 console.log('⬆️  递增版本号...');
 try {
-  execSync('node scripts/bump-version.js', { cwd: projectRoot, stdio: 'inherit' });
+  execFileSync('node', ['scripts/bump-version.js', versionType], { cwd: projectRoot, stdio: 'inherit' });
 } catch (error) {
   console.error('❌ 版本号递增失败:', error.message);
   process.exit(1);
@@ -31,7 +33,7 @@ try {
 // 2. 确保构建是最新的
 console.log('📦 执行生产构建...');
 try {
-  execSync('npm run build', { cwd: projectRoot, stdio: 'inherit' });
+  execFileSync('npm', ['run', 'build'], { cwd: projectRoot, stdio: 'inherit' });
 } catch (error) {
   console.error('❌ 构建失败:', error.message);
   process.exit(1);
@@ -43,7 +45,7 @@ const tempDir = join(releaseDir, 'temp');
 
 if (existsSync(releaseDir)) {
   console.log('🗑️  清理旧的发布目录...');
-  execSync(`rm -rf ${releaseDir}`, { cwd: projectRoot });
+  execFileSync('rm', ['-rf', releaseDir], { cwd: projectRoot });
 }
 
 mkdirSync(releaseDir, { recursive: true });
@@ -108,8 +110,7 @@ const zipName = `${safeName}-v${manifest.version || packageJson.version}.zip`;
 const zipPath = join(releaseDir, zipName);
 
 try {
-  // cd into tempDir so files are at root of zip
-  execSync(`cd ${tempDir} && zip -r ../${zipName} .`, { stdio: 'inherit' });
+  execFileSync('zip', ['-r', zipPath, '.'], { cwd: tempDir, stdio: 'inherit' });
   console.log(`✅ 打包完成: ${zipPath}`);
 } catch (error) {
   console.error('❌ 打包失败:', error.message);
@@ -119,7 +120,7 @@ try {
 // 6. 验证 zip 包
 console.log('🔍 验证 zip 包...');
 try {
-  const output = execSync(`unzip -l ${zipPath}`, { encoding: 'utf8' });
+  const output = execFileSync('unzip', ['-l', zipPath], { encoding: 'utf8' });
   const fileCount = output.split('\n').filter(line => line.trim() && !line.includes('Archive:') && !line.includes('files')).length - 1;
   console.log(`📊 zip 包包含 ${fileCount} 个文件`);
 } catch (error) {
@@ -128,7 +129,7 @@ try {
 
 // 7. 清理临时文件
 console.log('🧹 清理临时文件...');
-execSync(`rm -rf ${tempDir}`);
+execFileSync('rm', ['-rf', tempDir]);
 
 // 8. 显示总结
 console.log('\n🎉 打包完成！');
@@ -148,7 +149,7 @@ function copyDirectory(src, dest) {
   for (const item of items) {
     const srcPath = join(src, item);
     const destPath = join(dest, item);
-    
+
     if (statSync(srcPath).isDirectory()) {
       copyDirectory(srcPath, destPath);
     } else {
@@ -160,25 +161,25 @@ function copyDirectory(src, dest) {
 function listFiles(dir, baseDir) {
   const files = [];
   const items = readdirSync(dir);
-  
+
   for (const item of items) {
     const fullPath = join(dir, item);
     const relativePath = fullPath.replace(baseDir + '/', '');
-    
+
     if (statSync(fullPath).isDirectory()) {
       files.push(...listFiles(fullPath, baseDir));
     } else {
       files.push(relativePath);
     }
   }
-  
+
   return files;
 }
 
 function getFileSize(filePath) {
   const stats = statSync(filePath);
   const bytes = stats.size;
-  
+
   if (bytes < 1024) return bytes + ' B';
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
   return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
@@ -186,7 +187,7 @@ function getFileSize(filePath) {
 
 function getGitCommit() {
     try {
-        return execSync('git rev-parse --short HEAD').toString().trim();
+        return execFileSync('git', ['rev-parse', '--short', 'HEAD'], { encoding: 'utf8' }).trim();
     } catch {
         return 'unknown';
     }
@@ -194,10 +195,9 @@ function getGitCommit() {
 
 function checkUncommittedChanges() {
     try {
-        // 检查是否有未提交的修改
-        const statusOutput = execSync('git status --porcelain', { encoding: 'utf8' }).trim();
+        const statusOutput = execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }).trim();
         return statusOutput.length > 0;
     } catch {
         return false;
     }
-} 
+}

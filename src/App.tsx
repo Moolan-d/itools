@@ -1,5 +1,4 @@
-import { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useState, useRef, useCallback } from 'react'
 import { QrCode, FileJson, Link, Settings } from 'lucide-react'
 
 import QRCodeTool from './components/QRCodeTool'
@@ -10,33 +9,49 @@ import { useLocalStorage } from './hooks/useLocalStorage'
 
 type Tab = 'qrcode' | 'json' | 'url' | 'settings'
 
+const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
+  { id: 'qrcode', label: 'QR Code', icon: <QrCode size={18} /> },
+  { id: 'json', label: 'JSON', icon: <FileJson size={18} /> },
+  { id: 'url', label: 'URL', icon: <Link size={18} /> },
+  { id: 'settings', label: 'Settings', icon: <Settings size={18} /> },
+]
+
+const TAB_CONTENT: Record<Tab, React.ReactNode> = {
+  qrcode: <QRCodeTool />,
+  json: <JSONTool />,
+  url: <URLTool />,
+  settings: <SettingsPage />,
+}
+
+const EXIT_DURATION = 150
+
 function App() {
   const [settings] = useLocalStorage<{ defaultTab: Tab }>('itools_settings', { defaultTab: 'qrcode' })
   const [activeTab, setActiveTab] = useState<Tab>(() => settings.defaultTab || 'qrcode')
+  const [exitingTab, setExitingTab] = useState<Tab | null>(null)
+  const timerRef = useRef<ReturnType<typeof setTimeout>>()
 
-  const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
-    { id: 'qrcode', label: 'QR Code', icon: <QrCode size={18} /> },
-    { id: 'json', label: 'JSON', icon: <FileJson size={18} /> },
-    { id: 'url', label: 'URL', icon: <Link size={18} /> },
-    { id: 'settings', label: 'Settings', icon: <Settings size={18} /> },
-  ]
+  const handleTabChange = useCallback((next: Tab) => {
+    if (next === activeTab) return
+    clearTimeout(timerRef.current)
+    setExitingTab(activeTab)
+    setActiveTab(next)
+    timerRef.current = setTimeout(() => setExitingTab(null), EXIT_DURATION)
+  }, [activeTab])
 
   return (
     <div className="app-container">
-      <nav className="nav-bar">
-        {tabs.map((tab) => (
+      <nav className="nav-bar" role="tablist">
+        {TABS.map((tab) => (
           <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
+            role="tab"
+            aria-selected={activeTab === tab.id}
+            aria-controls={`panel-${tab.id}`}
+            onClick={() => handleTabChange(tab.id)}
             className={`nav-item ${activeTab === tab.id ? 'active' : ''}`}
           >
-            {activeTab === tab.id && (
-              <motion.div
-                layoutId="active-pill"
-                className="active-pill"
-                transition={{ type: 'spring', duration: 0.5 }}
-              />
-            )}
+            {activeTab === tab.id && <div className="active-pill" />}
             <span className="nav-icon">{tab.icon}</span>
             <span className="nav-label">{tab.label}</span>
           </button>
@@ -44,21 +59,23 @@ function App() {
       </nav>
 
       <main className="content-area">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeTab}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
-            className="w-full h-full flex-1 flex flex-col overflow-hidden"
+        {exitingTab && exitingTab !== activeTab && (
+          <div
+            key={`exit-${exitingTab}`}
+            role="tabpanel"
+            className="tab-panel tab-exit"
           >
-            {activeTab === 'qrcode' && <QRCodeTool />}
-            {activeTab === 'json' && <JSONTool />}
-            {activeTab === 'url' && <URLTool />}
-            {activeTab === 'settings' && <SettingsPage />}
-          </motion.div>
-        </AnimatePresence>
+            {TAB_CONTENT[exitingTab]}
+          </div>
+        )}
+        <div
+          key={`enter-${activeTab}`}
+          id={`panel-${activeTab}`}
+          role="tabpanel"
+          className="tab-panel tab-enter"
+        >
+          {TAB_CONTENT[activeTab]}
+        </div>
       </main>
     </div>
   )

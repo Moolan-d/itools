@@ -1,13 +1,13 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
 import { Copy, Check, Trash2, AlertCircle, FileJson, CheckCircle, XCircle } from 'lucide-react'
 import { useCachedInput } from '../hooks/useCachedInput'
 
 export default function JSONTool() {
   const [input, setInput] = useCachedInput('itools_cache_json', '')
-  const [mode, setMode] = useState<'pretty' | 'minify' | null>(null)
+  const [mode, setMode] = useState<'pretty' | 'minify' | null>('pretty')
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const [copyFailed, setCopyFailed] = useState(false)
   const [isValid, setIsValid] = useState(false)
   
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -65,12 +65,11 @@ export default function JSONTool() {
     }
   }
 
+  // Validate cached input on mount without reformatting
   useEffect(() => {
     if (input && input.trim()) {
       try {
-        const parsed = JSON.parse(input)
-        setInput(JSON.stringify(parsed, null, 2))
-        setMode('pretty')
+        JSON.parse(input)
         setError(null)
         setIsValid(true)
       } catch (err) {
@@ -78,6 +77,7 @@ export default function JSONTool() {
         setIsValid(false)
       }
     }
+    // Only run on mount — intentionally ignoring input dependency
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -103,6 +103,8 @@ export default function JSONTool() {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch (err) {
+      setCopyFailed(true)
+      setTimeout(() => setCopyFailed(false), 2000)
       console.error('Failed to copy', err)
     }
   }
@@ -136,13 +138,15 @@ export default function JSONTool() {
                 onClick={handleCopy} 
                 className={`icon-btn ${copied ? 'text-green-500 bg-green-50' : 'text-gray-500 hover:bg-blue-50 hover:text-blue-600'}`}
                 title="Copy"
+                aria-label="Copy to clipboard"
             >
-                {copied ? <Check size={18}/> : <Copy size={18}/>}
+                {copied ? <Check size={18}/> : copyFailed ? <AlertCircle size={18} className="text-red-500"/> : <Copy size={18}/>}
             </button>
             <button 
                 onClick={handleClear} 
                 className="icon-btn hover:bg-red-50 hover:text-red-500 text-gray-500" 
                 title="Clear"
+                aria-label="Clear input"
             >
                 <Trash2 size={18}/>
             </button>
@@ -160,6 +164,7 @@ export default function JSONTool() {
             `}
             spellCheck={false}
             placeholder='Paste JSON here...'
+            aria-label="JSON input"
             rows={8} 
             style={{ 
                 color: '#334155', 
@@ -170,18 +175,11 @@ export default function JSONTool() {
             }}
          />
          
-         <AnimatePresence>
-            {error && (
-                <motion.div 
-                    initial={{ opacity: 0, y: 5 }} 
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0 }}
-                    className="absolute top-2 right-2 bg-red-100 text-red-600 px-3 py-1 rounded text-xs flex items-center gap-1 shadow-sm border border-red-200 pointer-events-none"
-                >
-                    <AlertCircle size={14} /> {error}
-                </motion.div>
-            )}
-         </AnimatePresence>
+         {error && (
+             <div className="absolute top-2 right-2 bg-red-100 text-red-600 px-3 py-1 rounded text-xs flex items-center gap-1 shadow-sm border border-red-200 pointer-events-none tab-animate">
+                 <AlertCircle size={14} /> {error}
+             </div>
+         )}
       </div>
 
       <div className="h-8 bg-gray-50 rounded border border-gray-100 flex items-center px-3 justify-between text-xs text-slate-500">

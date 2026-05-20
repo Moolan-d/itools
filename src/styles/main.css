@@ -1,3 +1,5 @@
+@import "tailwindcss";
+
 :root {
   --primary-color: #3b82f6;
   --primary-bg: #eff6ff;
@@ -93,51 +95,13 @@ html, body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 0; /* Updated: Let components handle their padding if needed */
+  padding: 0;
   overflow: hidden;
   position: relative;
-  height: 100%; 
+  height: 100%;
 }
 
-/* Utilities */
-.flex { display: flex; }
-.flex-col { flex-direction: column; }
-.justify-between { justify-content: space-between; }
-.justify-center { justify-content: center; }
-.justify-end { justify-content: flex-end; }
-.items-center { align-items: center; }
-.items-end { align-items: flex-end; }
-.gap-1 { gap: 0.25rem; }
-.gap-2 { gap: 0.5rem; }
-.gap-3 { gap: 0.75rem; }
-.gap-4 { gap: 1rem; }
-.p-4 { padding: 1rem; }
-.px-3 { padding-left: 0.75rem; padding-right: 0.75rem; }
-.py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
-.w-full { width: 100%; }
-.h-full { height: 100%; }
-.text-xs { font-size: 0.75rem; line-height: 1rem; }
-.text-sm { font-size: 0.875rem; line-height: 1.25rem; }
-.resize-none { resize: none; }
-.text-center { text-align: center; }
-.font-medium { font-weight: 500; }
-.font-mono { font-family: 'JetBrains Mono', 'Fira Code', monospace; }
-.rounded { border-radius: 0.25rem; }
-.rounded-lg { border-radius: 0.5rem; }
-.rounded-full { border-radius: 9999px; }
-.border { border-width: 1px; }
-.border-2 { border-width: 2px; }
-.relative { position: relative; }
-.absolute { position: absolute; }
-.top-2 { top: 0.5rem; }
-.right-2 { right: 0.5rem; }
-.flex-1 { flex: 1; }
-.word-break { word-break: break-all; }
-.overflow-hidden { overflow: hidden; }
-.min-h-0 { min-height: 0; }
-.overflow-x-auto { overflow-x: auto; }
-
-/* New Modern Buttons */
+/* Buttons */
 .btn-modern {
     display: flex;
     align-items: center;
@@ -174,44 +138,99 @@ html, body {
     color: var(--text-color);
 }
 
-/* Colors - Tailwind-ish palette map */
-.bg-slate-50 { background-color: #f8fafc; }
-.bg-gray-50 { background-color: #f9fafb; }
-.bg-gray-100 { background-color: #f3f4f6; }
-.bg-blue-50 { background-color: #eff6ff; }
-.bg-blue-100 { background-color: #dbeafe; }
-.bg-red-50 { background-color: #fef2f2; }
-.bg-red-100 { background-color: #fee2e2; }
-.bg-green-500 { background-color: #22c55e; }
-.bg-gray-300 { background-color: #d1d5db; }
-
-.text-slate-500 { color: #64748b; }
-.text-gray-600 { color: #4b5563; }
-.text-blue-600 { color: #2563eb; }
-.text-green-500 { color: #22c55e; }
-.text-green-600 { color: #16a34a; }
-.text-red-500 { color: #ef4444; }
-.text-red-600 { color: #dc2626; }
-
-.border-gray-100 { border-color: #f3f4f6; }
-.border-gray-200 { border-color: #e5e7eb; }
-.border-blue-200 { border-color: #bfdbfe; }
-.border-blue-400 { border-color: #60a5fa; }
-.border-red-200 { border-color: #fecaca; }
-.border-red-400 { border-color: #f87171; }
-.border-green-400 { border-color: #4ade80; }
-
-.shadow-sm { box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); }
-.text-xxs { font-size: 0.625rem; line-height: 0.875rem; }
-
-/* QR Display */
-.qr-display {
+/* Tab content animation */
+.tab-panel {
+  position: absolute;
+  inset: 0;
   display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 1rem;
-  background: white;
-  border: 1px solid var(--border-color);
-  border-radius: 0.75rem;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  flex-direction: column;
+  overflow: hidden;
 }
+
+@keyframes tabEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes tabExit {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+.tab-enter {
+  animation: tabEnter 200ms ease-out both;
+  z-index: 2;
+}
+
+.tab-exit {
+  animation: tabExit 150ms ease-in both;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.tab-animate {
+  animation: tabEnter 200ms ease-out both;
+}
+
+/* QR code pop animation */
+@keyframes qrPop {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.qr-pop {
+  animation: qrPop 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Toggle switch */
+.toggle-track {
+  width: 2.75rem;
+  height: 1.5rem;
+  background-color: #d1d5db;
+  border-radius: 9999px;
+  position: relative;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.toggle-track.active {
+  background-color: #2563eb;
+}
+
+.toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 1.25rem;
+  height: 1.25rem;
+  background-color: white;
+  border-radius: 9999px;
+  border: 1px solid #d1d5db;
+  transition: transform 0.2s;
+}
+
+.toggle-track.active .toggle-thumb {
+  transform: translateX(1.25rem);
+  border-color: white;
+}
+
+/* Text size utility not in Tailwind */
+.text-xxs { font-size: 0.625rem; line-height: 0.875rem; }

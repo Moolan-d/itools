@@ -23,7 +23,7 @@ export function useCachedInput(key: string, initialValue: string) {
         // We will store as raw string or JSON. Let's consistency store raw string for inputs if possible or JSON string.
         // Let's assume JSON string to be safe with newlines etc.
         return item ? JSON.parse(item) : initialValue
-      } catch (error) {
+      } catch {
         return initialValue
       }
     }
@@ -36,6 +36,13 @@ export function useCachedInput(key: string, initialValue: string) {
       window.localStorage.setItem(key, JSON.stringify(value))
     }
   }, [key, value, settings.enableCache])
+
+  // Clear cached data when caching is disabled
+  useEffect(() => {
+    if (!settings.enableCache) {
+      window.localStorage.removeItem(key)
+    }
+  }, [key, settings.enableCache])
 
   return [value, setValue] as const
 }

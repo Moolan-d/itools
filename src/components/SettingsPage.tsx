@@ -23,7 +23,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-4 p-4 bg-slate-50 h-full h-full">
+    <div className="flex flex-col gap-4 p-4 bg-slate-50 h-full">
       <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider px-1 mb-2">Preferences</h2>
       
       {/* Cache Settings */}
@@ -74,7 +74,7 @@ export default function SettingsPage() {
       </div>
       
       <div className="mt-auto flex flex-col items-end justify-end p-4">
-          <p className="text-xxs text-gray-400">iTools v1.0.0 by moolan</p>      </div>
+          <p className="text-xxs text-gray-400">iTools v{__APP_VERSION__} by moolan</p>      </div>
     </div>
   )
 }
